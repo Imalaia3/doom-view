@@ -4,6 +4,7 @@
 #include "wad/wad.h"
 #include "wad/patch.h"
 #include "display/tga.h"
+#include "display/window.h"
 
 int main(int argc, char const *argv[]) {
     if (argc < 2) {
@@ -22,13 +23,21 @@ int main(int argc, char const *argv[]) {
     TGAWriter bossWriter(41, 73);
     for (size_t i = 0; i < 14; i++) {
         auto playpal = wad.getColorPalette(i);
-
         PatchImage bossImage(wad, wad.getLumpByName("BOSSA1"), playpal);
         bossWriter.putVectorRGB(bossImage.getPixels());
         std::string name = "playpal" + std::to_string(i) + ".tga";
         bossWriter.writeToFile(name.c_str());    
     }
-    
+
+    SDLWindow win(800,800);
+    auto p = win.renderBegin();
+    win.putPixel(100, 100, 255, 0, 255, p);
+    win.putPixel(100, 101, 255, 0, 255, p);
+    win.putPixel(101, 100, 255, 0, 255, p);
+    win.putPixel(101, 101, 255, 0, 255, p);
+    win.renderEnd();
+    win.updateWindow();
+    SDL_Delay(1000);
 
     return 0;
 }
