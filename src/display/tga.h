@@ -11,6 +11,16 @@ public:
     }
     
     void putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint8_t b);
+    
+    void putVectorBGR(std::vector<uint8_t>& source) {
+        assert(source.size() == m_pixels.size());
+        m_pixels = source;
+    }
+    void putVectorRGB(std::vector<uint8_t>& source) {
+        assert(source.size() == m_pixels.size());
+        m_pixels = source;
+        for (size_t i = 0; i < m_pixels.size(); i += 3) { std::swap(m_pixels[i], m_pixels[i + 2]); }
+    }
     void writeToFile(const char* filename);
 
     uint16_t getWidth() const { return m_width; }

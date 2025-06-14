@@ -18,14 +18,17 @@ int main(int argc, char const *argv[]) {
         printf("Name: %s\n", string);
     }
 
-    TGAWriter writer(256, 256);
-    for (size_t i = 0; i < 256; i++) {
-        for (size_t j = 0; j < 256; j++) {
-            writer.putPixel(i, j, i, j, 0);
-        }
+    // BOSSA1
+    // PatchImage bossImage(wad, wad.getLumpByName("BOSSA1"));
+
+    TGAWriter paletteWriter(16, 16);
+    for (size_t i = 0; i < 14; i++) {
+        auto playpal = wad.getColorPalette(i);
+        paletteWriter.putVectorRGB(playpal);
+        std::string name = "playpal" + std::to_string(i) + ".tga";
+        paletteWriter.writeToFile(name.c_str());
     }
-    writer.putPixel(0, 0, 0, 0, 255);
-    writer.writeToFile("output.tga");
     
+
     return 0;
 }
