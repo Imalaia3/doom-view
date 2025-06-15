@@ -22,9 +22,48 @@ void* SDLWindow::renderBegin()
     return ptr;
 }
 
-void SDLWindow::putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint32_t b, void *pixels) {
-    uint32_t* data = (uint32_t*)pixels;
-    data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+
+void SDLWindow::drawLine(int x, int y, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, void *pixels) {
+    bool yLonger=false;
+    int incrementVal, endVal;
+    int shortLen=y2-y;
+    int longLen=x2-x;
+    if (abs(shortLen)>abs(longLen)) {
+        int swap=shortLen;
+        shortLen=longLen;
+        longLen=swap;
+        yLonger=true;
+    }
+    endVal=longLen;
+    if (longLen<0) {
+        incrementVal=-1;
+        longLen=-longLen;
+    } else incrementVal=1;
+    int decInc;
+    if (longLen==0) decInc=0;
+    else decInc = (shortLen << 16) / longLen;
+    int j=0;
+    if (yLonger) {	
+        for (int i=0;i!=endVal;i+=incrementVal) {
+            putPixel(x+(j >> 16),y+i, r, g, b, pixels);	
+            j+=decInc;
+        }
+    } else {
+        for (int i=0;i!=endVal;i+=incrementVal) {
+            putPixel(x+i,y+(j >> 16), r, g, b, pixels);
+            j+=decInc;
+        }
+    }
+}
+
+void SDLWindow::drawRectFilled(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t r, uint8_t g, uint8_t b, void *pixels) {
+    assert(x + w <= m_width);
+    assert(y + h <= m_height);
+    for (uint32_t i = y; i < y + h; i++) {
+        for (uint32_t j = x; j < x + w; j++) {
+            putPixel(j, i, r, g, b, pixels);
+        }
+    }
 }
 
 void SDLWindow::updateWindow() {

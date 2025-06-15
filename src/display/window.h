@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <exception>
+#include <assert.h>
 
 class SDLWindow {
 public:
@@ -18,8 +19,19 @@ public:
 
     // Returns pixel handle
     void* renderBegin();
-    void putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint32_t b, void* pixels);
+    
+    inline void putPixel(uint32_t x, uint32_t y, uint8_t r, uint8_t g, uint32_t b, void *pixels) {
+        uint32_t* data = (uint32_t*)pixels;
+        data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+    }
+    
+    // Extremely Fast Line Algorithm (Copyright 2001-2, By Po-Han Lin)
+    void drawLine(int x, int y, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, void* pixels);
+
+    void drawRectFilled(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t r, uint8_t g, uint8_t b, void* pixels);
+    
     void renderEnd() { SDL_UnlockTexture(m_screenTexture); }
+    
     void updateWindow();
 
     void clearRenderer(uint8_t r, uint8_t g, uint8_t b) {

@@ -7,9 +7,9 @@
 #include <vector>
 #include <algorithm>
 #include <cstring>
+#include <assert.h>
 
 #include "structures.h"
-#include "thing.h"
 
 
 class WADFile {
@@ -27,6 +27,11 @@ public:
     
     WAD::FileLump getLumpByName(std::string name) const;
     size_t getLumpIndex(std::string name) const;
+    
+    WAD::FileLump getLumpFromIndex(size_t index) {
+        assert(index < m_lumpCount);
+        return m_lumps[index];
+    }
 
     // Offset from Map Marker
     enum class MapOffsets {
