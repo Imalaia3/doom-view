@@ -18,7 +18,7 @@ WADFile::WADFile(const char *filename) {
     Utils::streamRead(&m_infoTableOffset, sizeof(uint32_t), m_stream);
 
     // Read directory
-    m_lumps.resize(m_lumpCount);
+    m_lumps.reserve(m_lumpCount);
     m_stream.seekg(m_infoTableOffset, std::ios_base::beg);
     for (size_t i = 0; i < m_lumpCount; i++) {
         WAD::FileLump lump{};
@@ -44,4 +44,14 @@ WAD::FileLump WADFile::getLumpByName(std::string name) const {
         throw std::runtime_error("Lump does not exist");
     
     return *iterator;
+}
+
+size_t WADFile::getLumpIndex(std::string name) const {
+    auto iterator = std::find_if(m_lumps.begin(), m_lumps.end(), [&name](const WAD::FileLump& lump) {
+        return std::strncmp(lump.name, name.c_str(), 8) == 0;
+    });
+    if (iterator == m_lumps.end())
+        throw std::runtime_error("Lump does not exist");
+    
+    return std::distance(m_lumps.begin(), iterator);
 }

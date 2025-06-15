@@ -11,8 +11,6 @@ PatchImage::PatchImage(WADFile &file, WAD::FileLump imageLump, std::vector<uint8
     m_left = header.leftOffset;
     m_top = header.topOffset;
 
-    printf("Resolution: %ix%i\n", header.width, header.height);
-
     std::vector<uint32_t> columnOffsets(m_width);
     Utils::streamRead(columnOffsets.data(), m_width * sizeof(uint32_t), stream);
     m_pixels.resize(m_width * m_height * 3);

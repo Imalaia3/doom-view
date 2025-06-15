@@ -9,6 +9,7 @@
 #include <cstring>
 
 #include "structures.h"
+#include "thing.h"
 
 
 class WADFile {
@@ -25,6 +26,22 @@ public:
     std::vector<uint8_t> getColorPalette(uint8_t paletteID);
     
     WAD::FileLump getLumpByName(std::string name) const;
+    size_t getLumpIndex(std::string name) const;
+
+    // Offset from Map Marker
+    enum class MapOffsets {
+        THINGS = 1,
+        LINEDEFS,
+        SIDEDEFS,
+        VERTEXES,
+        SEGS,
+        SSECTORS,
+        NODES,
+        SECTORS,
+        REJECT,
+        BLOCKMAP,
+        BEHAVIOR
+    };
     
 private:
     std::ifstream m_stream;
