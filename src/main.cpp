@@ -34,30 +34,61 @@ int main(int argc, char const *argv[]) {
     auto verts = e1m1.getVertices();
     auto ldefs = e1m1.getLinedefs();
     auto player = e1m1.findThingByType(Thing::ThingType::PLAYERONE);
+    auto nodes = e1m1.getNodes();
+    auto rootNode = nodes[nodes.size()-1];
     
 
-    SDLWindow win(800,800);
+    SDLWindow win(1000,800);
     auto drawPixels = win.renderBegin();
 
+    
     // In order to make the level fit some scaling must be applied
-    auto adjustX = [](float x) {
-        auto nx = (uint32_t)(x / 10.0) + 200;
-        nx = (nx < 800) ? nx : 799;
-        return (nx > 0) ? nx : 0;
-    };
-    auto adjustY = [](float y) {
-        auto nx = (uint32_t)(y / 10.0) + 800;
-        nx = (nx < 800) ? nx : 799;
-        return (nx > 0) ? nx : 0;
-    };
-
-    for (auto &&def : ldefs) {
-        auto v1 = verts[def.v1];
-        auto v2 = verts[def.v2];
-        win.drawLine(adjustX(v1.x), adjustY(v1.y), adjustX(v2.x), adjustY(v2.y), 0xFF, 0xFF, 0xFF, drawPixels);
+    float minX = std::numeric_limits<float>::max(), maxX = std::numeric_limits<float>::lowest();
+    float minY = std::numeric_limits<float>::max(), maxY = std::numeric_limits<float>::lowest();
+    for (const auto& vert : verts) {
+        minX = std::min(minX, vert.x);
+        maxX = std::max(maxX, vert.x);
+        minY = std::min(minY, vert.y);
+        maxY = std::max(maxY, vert.y);
     }
 
-    win.drawRectFilled(adjustX(player.position.x)-2, adjustY(player.position.y)-2, 4, 4, 0x00, 0xFF, 0xFF, drawPixels);
+    auto screenX = [minX, maxX](float x) { return ((999) / (maxX - minX)) * (x - minX) + 0; };
+    auto screenY = [minY, maxY](float y) { return -((600) / (maxY - minY)) * (y - maxY) + 60; };
+    
+
+    for (const auto& def : ldefs) {
+        float x1 = screenX(verts[def.v1].x);
+        float y1 = screenY(verts[def.v1].y);
+        float x2 = screenX(verts[def.v2].x);
+        float y2 = screenY(verts[def.v2].y);
+
+        win.drawLine(x1, y1, x2, y2, 0xFF, 0xFF, 0xFF, drawPixels);
+    }
+
+    win.drawRectFilled(screenX(player.position.x)-2, screenY(player.position.y), 4, 4, 0x00, 0xFF, 0xFF, drawPixels);
+    
+    //Back = Left
+    win.drawRectHollow(
+        screenX(rootNode.leftBoundingBox[2]), screenY(rootNode.leftBoundingBox[0]),
+        screenX(rootNode.leftBoundingBox[3]), screenY(rootNode.leftBoundingBox[1]),
+        0xFF, 0x00, 0x00, drawPixels
+    );
+    
+    //Front = Right
+    win.drawRectHollow(
+        screenX(rootNode.rightBoundingBox[2]), screenY(rootNode.rightBoundingBox[0]),
+        screenX(rootNode.rightBoundingBox[3]), screenY(rootNode.rightBoundingBox[1]),
+        0x00, 0xFF, 0x00, drawPixels
+    );
+
+    win.drawLine(
+        screenX(rootNode.splitterX), screenY(rootNode.splitterY),
+        screenX(rootNode.splitterX) + rootNode.splitterDeltaX, screenY(rootNode.splitterY)+ rootNode.splitterDeltaY,
+        0xFF, 0xFF, 0x00, drawPixels
+    );
+
+    win.drawRectFilled(screenX(rootNode.splitterX), screenY(rootNode.splitterY), 2,2,0xFF, 0x00, 0xFF, drawPixels);
+    
 
     win.renderEnd();
     win.updateWindow();

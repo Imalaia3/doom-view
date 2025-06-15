@@ -51,4 +51,15 @@ namespace WAD {
         int16_t special;
         int16_t tag;
     } __attribute__((packed));
+
+    struct NodeEntry {
+        int16_t splitterX;
+        int16_t splitterY;
+        int16_t splitterDeltaX;
+        int16_t splitterDeltaY;
+        int16_t rightBoundingBox[4];
+        int16_t leftBoundingBox[4];
+        int16_t rightChild;
+        int16_t leftChild;
+    } __attribute__((packed));
 }

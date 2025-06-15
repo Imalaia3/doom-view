@@ -70,3 +70,17 @@ void SDLWindow::updateWindow() {
     SDL_RenderCopy(m_renderer, m_screenTexture, NULL, NULL);
     SDL_RenderPresent(m_renderer);
 }
+
+void SDLWindow::drawRectHollow(uint32_t lowX, uint32_t lowY, uint32_t highX, uint32_t highY, uint8_t r, uint8_t g, uint8_t b, void *pixels) {
+    assert(lowX < highX);
+    assert(lowY < highY);
+
+    for (uint32_t i = lowX; i <= highX; i++) {
+        putPixel(i, lowY, r, g, b, pixels);
+        putPixel(i, highY, r, g, b, pixels);
+    }
+    for (uint32_t i = lowY; i <= highY; i++) {
+        putPixel(lowX, i, r, g, b, pixels);
+        putPixel(highX, i, r, g, b, pixels);
+    }
+}

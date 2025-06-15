@@ -34,6 +34,8 @@ public:
     
     void updateWindow();
 
+    void drawRectHollow(uint32_t lowX, uint32_t lowY, uint32_t highX, uint32_t highY, uint8_t r, uint8_t g, uint8_t b, void* pixels);
+
     void clearRenderer(uint8_t r, uint8_t g, uint8_t b) {
         SDL_SetRenderDrawColor(m_renderer, r, g, b, 0xFF);
         SDL_RenderClear(m_renderer);

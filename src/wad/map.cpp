@@ -5,9 +5,11 @@ WADMap::WADMap(WADFile &wad, WAD::FileLump mapLump) {
     auto thingsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::THINGS);
     auto vertsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::VERTEXES);
     auto linedefsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::LINEDEFS);
+    auto nodesLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::NODES);
     loadThings(wad, thingsLump);
     loadVertices(wad, vertsLump);
     loadLinedefs(wad, linedefsLump);
+    loadBSPNodes(wad, nodesLump);
 }
 
 Thing& WADMap::findThingByType(Thing::ThingType t) {
@@ -46,4 +48,11 @@ void WADMap::loadLinedefs(WADFile &wad, WAD::FileLump lump) {
     stream.seekg(lump.filepos, std::ios_base::beg);
     m_linedefs.resize(lump.size / sizeof(WAD::LinedefEntry));
     Utils::streamRead(m_linedefs.data(), lump.size, stream);
+}
+
+void WADMap::loadBSPNodes(WADFile &wad, WAD::FileLump lump) {
+    auto& stream = wad.getStream();
+    stream.seekg(lump.filepos, std::ios_base::beg);
+    m_nodes.resize(lump.size / sizeof(WAD::NodeEntry));
+    Utils::streamRead(m_nodes.data(), lump.size, stream);    
 }
