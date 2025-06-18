@@ -6,10 +6,14 @@ WADMap::WADMap(WADFile &wad, WAD::FileLump mapLump) {
     auto vertsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::VERTEXES);
     auto linedefsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::LINEDEFS);
     auto nodesLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::NODES);
+    auto ssectorsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::SSECTORS);
+    auto segsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::SEGS);
     loadThings(wad, thingsLump);
     loadVertices(wad, vertsLump);
     loadLinedefs(wad, linedefsLump);
     loadBSPNodes(wad, nodesLump);
+    loadSubsectors(wad, ssectorsLump);
+    loadSegs(wad, segsLump);
 }
 
 Thing& WADMap::findThingByType(Thing::ThingType t) {
@@ -55,4 +59,18 @@ void WADMap::loadBSPNodes(WADFile &wad, WAD::FileLump lump) {
     stream.seekg(lump.filepos, std::ios_base::beg);
     m_nodes.resize(lump.size / sizeof(WAD::NodeEntry));
     Utils::streamRead(m_nodes.data(), lump.size, stream);    
+}
+
+void WADMap::loadSubsectors(WADFile &wad, WAD::FileLump lump) {
+    auto& stream = wad.getStream();
+    stream.seekg(lump.filepos, std::ios_base::beg);
+    m_subsectors.resize(lump.size / sizeof(WAD::SubsectorEntry));
+    Utils::streamRead(m_subsectors.data(), lump.size, stream);
+}
+
+void WADMap::loadSegs(WADFile &wad, WAD::FileLump lump) {
+    auto& stream = wad.getStream();
+    stream.seekg(lump.filepos, std::ios_base::beg);
+    m_segs.resize(lump.size / sizeof(WAD::SegEntry));
+    Utils::streamRead(m_segs.data(), lump.size, stream);
 }

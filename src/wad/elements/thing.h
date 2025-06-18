@@ -4,6 +4,7 @@
 
 class Thing {
 public:
+    Thing() {}
     Thing(WAD::ThingEntry entry) {
         position = Math::Vec2(entry.x, entry.y);
         andgleDeg = static_cast<float>(entry.angle);

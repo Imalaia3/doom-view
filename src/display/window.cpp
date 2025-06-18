@@ -73,7 +73,11 @@ void SDLWindow::updateWindow() {
 
 void SDLWindow::drawRectHollow(uint32_t lowX, uint32_t lowY, uint32_t highX, uint32_t highY, uint8_t r, uint8_t g, uint8_t b, void *pixels) {
     assert(lowX < highX);
-    assert(lowY < highY);
+    if (lowY > highY) {
+        uint32_t t = highY;
+        highY = lowY;
+        lowY = t;
+    }
 
     for (uint32_t i = lowX; i <= highX; i++) {
         putPixel(i, lowY, r, g, b, pixels);

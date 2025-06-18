@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "../math/bbox.h"
 
 namespace WAD {
     struct FileLump {
@@ -61,5 +62,29 @@ namespace WAD {
         int16_t leftBoundingBox[4];
         int16_t rightChild;
         int16_t leftChild;
+
+        Math::BoundingBox getLeftBox()  {
+            return Math::BoundingBox(leftBoundingBox[2], leftBoundingBox[1], 
+                leftBoundingBox[3], leftBoundingBox[0]);
+        }
+        Math::BoundingBox getRightBox()  {
+            return Math::BoundingBox(rightBoundingBox[2], rightBoundingBox[1], 
+                rightBoundingBox[3], rightBoundingBox[0]);
+        }
+
+    } __attribute__((packed));
+
+    struct SegEntry {
+        int16_t vbeg;
+        int16_t vend;
+        int16_t angle;
+        int16_t linedef;
+        int16_t dir;
+        int16_t offset;
+    } __attribute__((packed));
+    
+    struct SubsectorEntry {
+        int16_t segCount;
+        int16_t firstSeg;
     } __attribute__((packed));
 }
