@@ -45,11 +45,15 @@ void SDLWindow::drawLine(int x, int y, int x2, int y2, uint8_t r, uint8_t g, uin
     int j=0;
     if (yLonger) {	
         for (int i=0;i!=endVal;i+=incrementVal) {
+            if (outOfBoundsX(x+(j >> 16)) || outOfBoundsY(y+i))
+                break;
             putPixel(x+(j >> 16),y+i, r, g, b, pixels);	
             j+=decInc;
         }
     } else {
         for (int i=0;i!=endVal;i+=incrementVal) {
+            if (outOfBoundsX(x+(j >> 16)) || outOfBoundsY(y+i))
+                break;
             putPixel(x+i,y+(j >> 16), r, g, b, pixels);
             j+=decInc;
         }
@@ -71,20 +75,16 @@ void SDLWindow::updateWindow() {
     SDL_RenderPresent(m_renderer);
 }
 
-void SDLWindow::drawRectHollow(uint32_t lowX, uint32_t lowY, uint32_t highX, uint32_t highY, uint8_t r, uint8_t g, uint8_t b, void *pixels) {
-    assert(lowX < highX);
-    if (lowY > highY) {
-        uint32_t t = highY;
-        highY = lowY;
-        lowY = t;
-    }
+void SDLWindow::drawRectHollow(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2, uint8_t r, uint8_t g, uint8_t b, void *pixels) {
+    if (x1 > x2) { std::swap(x1, x2); }
+    if (y1 > y2) { std::swap(y1, y2); }
 
-    for (uint32_t i = lowX; i <= highX; i++) {
-        putPixel(i, lowY, r, g, b, pixels);
-        putPixel(i, highY, r, g, b, pixels);
+    for (uint32_t i = x1; i <= x2; i++) {
+        putPixel(i, y1, r, g, b, pixels);
+        putPixel(i, y2, r, g, b, pixels);
     }
-    for (uint32_t i = lowY; i <= highY; i++) {
-        putPixel(lowX, i, r, g, b, pixels);
-        putPixel(highX, i, r, g, b, pixels);
+    for (uint32_t i = y1; i <= y2; i++) {
+        putPixel(x1, i, r, g, b, pixels);
+        putPixel(x2, i, r, g, b, pixels);
     }
 }

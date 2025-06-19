@@ -42,6 +42,9 @@ public:
     }
 
 private:
+    bool outOfBoundsX(int32_t x) { if (x < 0) return true; if (static_cast<uint32_t>(x) >= m_width) return true; return false; }
+    bool outOfBoundsY(int32_t y) { if (y < 0) return true; if (static_cast<uint32_t>(y) >= m_height) return true; return false; }
+
     uint32_t m_width, m_height;
     SDL_Window* m_window;
     SDL_Renderer* m_renderer;

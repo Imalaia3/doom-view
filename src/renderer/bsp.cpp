@@ -3,6 +3,7 @@
 BSPRenderer::BSPRenderer(WADMap& map, SDLWindow &renderTarget) : m_map(map), m_target(renderTarget) {    
     m_player = Thing(map.findThingByType(Thing::ThingType::PLAYERONE));
     m_nodes = m_map.getNodes();
+    m_FOV = Math::radians(90); // 90 degrees as per the doom wiki
 
     // Calculate vertex ranges
     m_minX = std::numeric_limits<float>::max();
@@ -26,38 +27,39 @@ void BSPRenderer::drawFrame() {
         //todo: implement this in LinedefEntry
         auto v1 = worldToScreen2D(Math::Vec2(verts[def.v1].x, verts[def.v1].y));
         auto v2 = worldToScreen2D(Math::Vec2(verts[def.v2].x, verts[def.v2].y));
-        // printf("%u %u - %u %u\n", (uint32_t)v1.x, (uint32_t)v1.y, (uint32_t)v2.x, (uint32_t)v2.y);
         m_target.drawLine(v1.x, v1.y, v2.x, v2.y, 0xFF, 0xFF, 0xFF, drawPixels);
     }
 
     auto playerScreenPos = worldToScreen2D(m_player.position);
     m_target.drawRectFilled(playerScreenPos.x - 2.0f, playerScreenPos.y - 2.0f, 4, 4, 0x00, 0xFF, 0xFF, drawPixels);
 
-    WAD::NodeEntry& rootNode = getBSPRoot();
-    auto leftBbox = rootNode.getLeftBox();
-    auto rightBbox = rootNode.getRightBox();
-    {
-        auto p1 = worldToScreen2D(Math::Vec2(leftBbox.x1, leftBbox.y1));
-        auto p2 = worldToScreen2D(Math::Vec2(leftBbox.x2, leftBbox.y2));
-
-        m_target.drawRectHollow(
-            p1.x, p1.y,
-            p2.x, p2.y,
-            0xFF, 0x00, 0x00, drawPixels
-        );
-    }
-    {
-        auto p1 = worldToScreen2D(Math::Vec2(rightBbox.x1, rightBbox.y1));
-        auto p2 = worldToScreen2D(Math::Vec2(rightBbox.x2, rightBbox.y2));
-
-        m_target.drawRectHollow(
-            p1.x, p1.y,
-            p2.x, p2.y,
-            0x00, 0xFF, 0x00, drawPixels
-        );
-    }
-
     traverseBSP(m_nodes.size() - 1, drawPixels);
+
+    // Draw player frustum
+    printf("Player Angle: %f deg\n", m_player.getAngleDegrees());
+    printf("Player FOV: %f rad\n", m_FOV);
+    {
+        float s = std::sin(m_FOV/2.0f + m_player.getAngleRadians());
+        float c = std::cos(m_FOV/2.0f + m_player.getAngleRadians());
+        auto p1 = worldToScreen2D(Math::Vec2(
+            m_player.position.x + c * 90000, m_player.position.y + s * 90000
+        ));
+        m_target.drawLine(playerScreenPos.x, playerScreenPos.y,
+            p1.x, p1.y,           
+            0xFF, 0xFF, 0x00, drawPixels
+        );
+    }
+    {
+        float s = std::sin(-m_FOV/2.0f + m_player.getAngleRadians());
+        float c = std::cos(-m_FOV/2.0f + m_player.getAngleRadians());
+        auto p1 = worldToScreen2D(Math::Vec2(
+            m_player.position.x + c * 90000, m_player.position.y + s * 90000
+        ));
+        m_target.drawLine(playerScreenPos.x, playerScreenPos.y,
+            p1.x, p1.y,           
+            0xFF, 0xFF, 0x00, drawPixels
+        );
+    }
 
     m_target.renderEnd();
     m_target.updateWindow();
@@ -67,6 +69,57 @@ bool BSPRenderer::calculateSide(WAD::NodeEntry &node) {
     float product = (m_player.position.x - node.splitterX) * (float)(node.splitterDeltaY) -
         (m_player.position.y - node.splitterY) * (float)(node.splitterDeltaX);
     return (product > 0.0f);
+}
+
+bool BSPRenderer::insideFrustum(Math::BoundingBox bbox) {
+    // 1 = hi 0 = lo
+    //v00, v10, v01, v11
+    // https://github.com/id-Software/DOOM/blob/a77dfb96cb91780ca334d0d4cfd86957558007e0/linuxdoom-1.10/r_bsp.c#L365
+    constexpr uint8_t lut[9][2] = {
+        {3, 0},
+        {3, 2},
+        {1, 2},
+
+        {2, 0},
+        {0, 0},
+        {3, 1},
+        
+        {2, 1},
+        {0, 1},
+        {0, 3}
+    };
+    const Math::Vec2 points[4] = {
+        Math::Vec2(bbox.x1, bbox.y1), // v00
+        Math::Vec2(bbox.x2, bbox.y1), // v10
+        Math::Vec2(bbox.x1, bbox.y2), // v01
+        Math::Vec2(bbox.x2, bbox.y2)  // v11
+    };
+
+    uint8_t lutx, luty;
+    if (m_player.position.x <= bbox.x1)
+	    lutx = 0;
+    else if (m_player.position.x < bbox.x2)
+	    lutx = 1;
+    else
+	    lutx = 2;
+		
+    if (m_player.position.y >= bbox.y2)
+	    luty = 0;
+    else if (m_player.position.y > bbox.y1)
+        luty = 1;
+    else
+        luty = 2;
+
+    if (lutx == 1 && luty == 1) { return true; }
+    
+    float a1 = Math::normalizeRad(toAngle(points[lut[luty*3+lutx][0]]) - m_player.getAngleRadians());
+    float a2 = Math::normalizeRad(toAngle(points[lut[luty*3+lutx][1]]) - m_player.getAngleRadians());
+    float clipangle = m_FOV / 2.0f;
+    if (a1 < -clipangle && a2 < -clipangle)
+        return false;
+    if (a1 > clipangle && a2 > clipangle)
+        return false;
+    return true;
 }
 
 void BSPRenderer::traverseBSP(int16_t bspNodeID, void *pixels)
@@ -87,8 +140,20 @@ void BSPRenderer::traverseBSP(int16_t bspNodeID, void *pixels)
     traverseBSP(frontSide ? node.leftChild : node.rightChild, pixels);
     
     // Back Space
-    // TODO: Frustum culling on back node due to the chance of it being directly behind the player frustum
-    traverseBSP(!frontSide ? node.leftChild : node.rightChild, pixels);
+    if (insideFrustum(!frontSide ? node.getLeftBox() : node.getRightBox())) {
+        traverseBSP(!frontSide ? node.leftChild : node.rightChild, pixels);
+        
+    } else {
+            auto box = !frontSide ? node.getLeftBox() : node.getRightBox();
+            auto p1 = worldToScreen2D(Math::Vec2(box.x1, box.y1));
+            auto p2 = worldToScreen2D(Math::Vec2(box.x2, box.y2));
+
+            m_target.drawRectHollow(
+                p1.x, p1.y,
+                p2.x, p2.y,
+                0xFF, 0x00, 0x00, pixels
+            );
+    }
 }
 
 void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
@@ -102,7 +167,6 @@ void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
         m_target.drawLine(vb.x, vb.y, ve.x, ve.y, (10+m_count) & 0xFF, 100+((m_count>>8) & 0xFF), (m_count>>16) & 0xFF, pixels);
     }
     m_count++;
-    
 }
 
 Math::Vec2 BSPRenderer::worldToScreen2D(Math::Vec2 in)

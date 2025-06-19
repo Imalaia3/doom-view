@@ -19,7 +19,7 @@ namespace WAD {
     struct ThingEntry {
         int16_t x;
         int16_t y;
-        int16_t angle; // Degrees
+        int16_t angleDeg; // Degrees
         int16_t type;
         int16_t flags;
     } __attribute__((packed));
@@ -77,7 +77,7 @@ namespace WAD {
     struct SegEntry {
         int16_t vbeg;
         int16_t vend;
-        int16_t angle;
+        int16_t angleDeg;
         int16_t linedef;
         int16_t dir;
         int16_t offset;
