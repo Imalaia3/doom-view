@@ -137,14 +137,14 @@ void BSPRenderer::traverseBSP(int16_t bspNodeID, void *pixels)
 
     // Front space
     // https://github.com/id-Software/DOOM/blob/a77dfb96cb91780ca334d0d4cfd86957558007e0/linuxdoom-1.10/r_defs.h#L265
-    traverseBSP(frontSide ? node.leftChild : node.rightChild, pixels);
+    traverseBSP(!frontSide ? node.leftChild : node.rightChild, pixels);
     
     // Back Space
-    if (insideFrustum(!frontSide ? node.getLeftBox() : node.getRightBox())) {
-        traverseBSP(!frontSide ? node.leftChild : node.rightChild, pixels);
+    if (insideFrustum(frontSide ? node.getLeftBox() : node.getRightBox())) {
+        traverseBSP(frontSide ? node.leftChild : node.rightChild, pixels);
         
     } else {
-            auto box = !frontSide ? node.getLeftBox() : node.getRightBox();
+            auto box = frontSide ? node.getLeftBox() : node.getRightBox();
             auto p1 = worldToScreen2D(Math::Vec2(box.x1, box.y1));
             auto p2 = worldToScreen2D(Math::Vec2(box.x2, box.y2));
 
