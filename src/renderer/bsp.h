@@ -21,7 +21,17 @@ private:
     
     bool insideFrustum(Math::BoundingBox bbox);
     void traverseBSP(int16_t bspNodeID, void* pixels);
-    float viwangleToX(float angle);
+    inline int32_t viewAngleToX(float angle);
+    // Classify if seg is withing the player's FOV and is not a back face.
+    bool isSegVisible(Seg& seg);
+    // FIXME: This can be optimized by incorporating it into isSegVisible()
+    //        because we know what type of angle it would be (a1/a2)
+    // Clip angle to -FOV/2 or +FOV/2, assumes angle is adjusted by -m_player.getAngleRadians()
+    inline float clipAngle(float angle) {
+        if (angle < -m_clipangle) return -m_clipangle;
+        if (angle > m_clipangle)  return m_clipangle;
+        return angle;
+    };
     void drawSeg(Seg seg, void* pixels);
     //Draw 2D representation of the subsector
     void renderSubsector(uint16_t subsectorID, void* pixels);
@@ -37,4 +47,5 @@ private:
     // Only for testing
     uint32_t m_count = 0;
     float m_FOV;
+    float m_clipangle;
 };

@@ -3,7 +3,9 @@
 BSPRenderer::BSPRenderer(WADMap& map, SDLWindow &renderTarget) : m_map(map), m_target(renderTarget) {    
     m_player = Thing(map.findThingByType(Thing::ThingType::PLAYERONE));
     m_nodes = m_map.getNodes();
+    m_player.setAngleDegrees(90);
     m_FOV = Math::radians(90); // 90 degrees as per the doom wiki
+    m_clipangle = m_FOV/2.0f;
 
     // Calculate vertex ranges
     m_minX = std::numeric_limits<float>::max();
@@ -114,10 +116,9 @@ bool BSPRenderer::insideFrustum(Math::BoundingBox bbox) {
     
     float a1 = Math::normalizeRad(toAngle(points[lut[luty*3+lutx][0]]) - m_player.getAngleRadians());
     float a2 = Math::normalizeRad(toAngle(points[lut[luty*3+lutx][1]]) - m_player.getAngleRadians());
-    float clipangle = m_FOV / 2.0f;
-    if (a1 < -clipangle && a2 < -clipangle)
+    if (a1 < -m_clipangle && a2 < -m_clipangle)
         return false;
-    if (a1 > clipangle && a2 > clipangle)
+    if (a1 > m_clipangle && a2 > m_clipangle)
         return false;
     return true;
 }
@@ -156,15 +157,39 @@ void BSPRenderer::traverseBSP(int16_t bspNodeID, void *pixels)
     }
 }
 
-float BSPRenderer::viwangleToX(float angle) {
+inline int32_t BSPRenderer::viewAngleToX(float angle) {
+    // could also be 1 - tan(angle)/tan(clipangle) but that makes it more difficult to
+    // understand that when angle -FOV/2 the result is 0.
+    return ((m_target.getWidth()-1)/2)*(1.0f + tan(angle)/(tan(-m_clipangle)));
+}
 
+bool BSPRenderer::isSegVisible(Seg &seg) {
+    float a1 = Math::normalizeRad(toAngle(seg.vbeg(m_map.getVertices())) - m_player.getAngleRadians());
+    float a2 = Math::normalizeRad(toAngle(seg.vend(m_map.getVertices())) - m_player.getAngleRadians());
+    // Backface culling. Although logically shouln't it be > 0.0?
+    if (a1 - a2 < 0.0)
+        return false;
+    // Frustum Culling
+    if (a1 < -m_clipangle && a2 < -m_clipangle)
+        return false;
+    if (a1 > m_clipangle && a2 > m_clipangle)
+        return false;
+    return true;
 }
 
 void BSPRenderer::drawSeg(Seg seg, void *pixels) {
+    if (!isSegVisible(seg)) {
+        return;
+    }
     auto viewpos = m_player.position;
     auto& verts = m_map.getVertices();
-    auto v1 = seg.vbeg(verts); 
-    auto v2 = seg.vend(verts);
+    float a1 = clipAngle(toAngle(seg.vbeg(verts)) - m_player.getAngleRadians()); 
+    float a2 = clipAngle(toAngle(seg.vend(verts)) - m_player.getAngleRadians());
+    int32_t x1 = viewAngleToX(a1);
+    int32_t x2 = viewAngleToX(a2);
+    
+    m_target.verticalScanline(x1, 0xFF, 0xFF, 0xFF, pixels);
+    m_target.verticalScanline(x2, 0xFF, 0xFF, 0xFF, pixels);
 }
 
 void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
