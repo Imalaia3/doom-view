@@ -21,6 +21,8 @@ private:
     
     bool insideFrustum(Math::BoundingBox bbox);
     void traverseBSP(int16_t bspNodeID, void* pixels);
+    float viwangleToX(float angle);
+    void drawSeg(Seg seg, void* pixels);
     //Draw 2D representation of the subsector
     void renderSubsector(uint16_t subsectorID, void* pixels);
 

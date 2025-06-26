@@ -156,15 +156,24 @@ void BSPRenderer::traverseBSP(int16_t bspNodeID, void *pixels)
     }
 }
 
+float BSPRenderer::viwangleToX(float angle) {
+
+}
+
+void BSPRenderer::drawSeg(Seg seg, void *pixels) {
+    auto viewpos = m_player.position;
+    auto& verts = m_map.getVertices();
+    auto v1 = seg.vbeg(verts); 
+    auto v2 = seg.vend(verts);
+}
+
 void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
     auto subsector = m_map.getSubsectors()[subsectorID];
     auto& segs = m_map.getSegs();
     auto& verts = m_map.getVertices();
     for (size_t i = 0; i < static_cast<uint16_t>(subsector.segCount); i++) {
-        WAD::SegEntry seg = segs[subsector.firstSeg + i];
-        Math::Vec2 vb = worldToScreen2D(Math::Vec2(verts[seg.vbeg].x, verts[seg.vbeg].y));
-        Math::Vec2 ve = worldToScreen2D(Math::Vec2(verts[seg.vend].x, verts[seg.vend].y));
-        m_target.drawLine(vb.x, vb.y, ve.x, ve.y, (10+m_count) & 0xFF, 100+((m_count>>8) & 0xFF), (m_count>>16) & 0xFF, pixels);
+        auto seg = segs[subsector.firstSeg + i];        
+        drawSeg(seg, pixels);
     }
     m_count++;
 }

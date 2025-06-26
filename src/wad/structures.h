@@ -77,7 +77,7 @@ namespace WAD {
     struct SegEntry {
         int16_t vbeg;
         int16_t vend;
-        int16_t angleDeg;
+        int16_t angleBam;
         int16_t linedef;
         int16_t dir;
         int16_t offset;

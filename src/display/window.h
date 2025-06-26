@@ -24,6 +24,14 @@ public:
         uint32_t* data = (uint32_t*)pixels;
         data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
     }
+
+    void verticalScanline(uint32_t x, uint8_t r, uint8_t g, uint8_t b, void* pixels) {
+        assert(x < m_width);
+        uint32_t* data = (uint32_t*)pixels;
+        for (uint32_t y = 0; y < m_height; y++) {
+            data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+        }                
+    }
     
     // Extremely Fast Line Algorithm (Copyright 2001-2, By Po-Han Lin)
     void drawLine(int x, int y, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, void* pixels);

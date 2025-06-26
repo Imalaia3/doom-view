@@ -5,14 +5,18 @@ WADMap::WADMap(WADFile &wad, WAD::FileLump mapLump) {
     auto thingsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::THINGS);
     auto vertsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::VERTEXES);
     auto linedefsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::LINEDEFS);
+    auto sidedefsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::SIDEDEFS);
     auto nodesLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::NODES);
     auto ssectorsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::SSECTORS);
+    auto sectorsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::SECTORS);
     auto segsLump = wad.getLumpFromIndex(base + (size_t)WADFile::MapOffsets::SEGS);
     loadThings(wad, thingsLump);
     loadVertices(wad, vertsLump);
     loadLinedefs(wad, linedefsLump);
+    loadSidedefs(wad, sidedefsLump);
     loadBSPNodes(wad, nodesLump);
     loadSubsectors(wad, ssectorsLump);
+    loadSectors(wad, sectorsLump);
     loadSegs(wad, segsLump);
 }
 
@@ -54,6 +58,13 @@ void WADMap::loadLinedefs(WADFile &wad, WAD::FileLump lump) {
     Utils::streamRead(m_linedefs.data(), lump.size, stream);
 }
 
+void WADMap::loadSidedefs(WADFile &wad, WAD::FileLump lump) {
+    auto& stream = wad.getStream();
+    stream.seekg(lump.filepos, std::ios_base::beg);
+    m_sidedefs.resize(lump.size / sizeof(WAD::SidedefEntry));
+    Utils::streamRead(m_sidedefs.data(), lump.size, stream);
+}
+
 void WADMap::loadBSPNodes(WADFile &wad, WAD::FileLump lump) {
     auto& stream = wad.getStream();
     stream.seekg(lump.filepos, std::ios_base::beg);
@@ -68,9 +79,50 @@ void WADMap::loadSubsectors(WADFile &wad, WAD::FileLump lump) {
     Utils::streamRead(m_subsectors.data(), lump.size, stream);
 }
 
+void WADMap::loadSectors(WADFile &wad, WAD::FileLump lump) {
+    auto& stream = wad.getStream();
+    stream.seekg(lump.filepos, std::ios_base::beg);
+    m_sectors.resize(lump.size / sizeof(WAD::SectorEntry));
+    Utils::streamRead(m_sectors.data(), lump.size, stream);
+}
+
 void WADMap::loadSegs(WADFile &wad, WAD::FileLump lump) {
     auto& stream = wad.getStream();
     stream.seekg(lump.filepos, std::ios_base::beg);
-    m_segs.resize(lump.size / sizeof(WAD::SegEntry));
-    Utils::streamRead(m_segs.data(), lump.size, stream);
+    for (size_t i = 0; i < lump.size / sizeof(WAD::SegEntry); i+=1) {
+        WAD::SegEntry entry{};
+        Utils::streamRead(&entry, sizeof(WAD::SegEntry), stream);
+        m_segs.push_back(Seg(entry));
+    }
+    /* Calculate Sector Fields */
+    assert(m_sectors.size() > 0);
+    assert(m_linedefs.size() > 0);
+    assert(m_sidedefs.size() > 0);
+    for (auto &&seg : m_segs) {
+        auto entry = seg.getEntry();
+        auto linedef = seg.linedef(m_linedefs);
+        
+        // Front is sidedef1 aka backSidedef
+        uint32_t frontSidedef = linedef.backSidedef;
+        uint32_t backSidedef = linedef.frontSidedef;
+        if(entry.dir == 0) { // Front is sidedef0 aka frontSidedef
+            frontSidedef = linedef.frontSidedef;
+            backSidedef = linedef.backSidedef;
+        }
+        uint32_t frontSectorID = m_sidedefs[frontSidedef].lookatSector; // always has a front sector
+        uint32_t backSectorID = 0;
+        // check if it has a back sector by checking bit 2
+        bool hasBack = false;
+        constexpr uint16_t ML_TWOSIDED = 0x0004;
+        if(linedef.flags & ML_TWOSIDED) {
+            hasBack = true;
+            backSectorID = m_sidedefs[backSidedef].lookatSector;
+        }
+        seg.updateSectors(frontSectorID, backSectorID, hasBack);        
+
+        // Convert angles
+        seg.setAngleRad((M_PI * (float)entry.angleBam)/(float)(32768));
+    }
+    
+
 }
