@@ -181,13 +181,11 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     if (!isSegVisible(seg)) {
         return;
     }
-    auto viewpos = m_player.position;
     auto& verts = m_map.getVertices();
     float a1 = clipAngle(toAngle(seg.vbeg(verts)) - m_player.getAngleRadians()); 
     float a2 = clipAngle(toAngle(seg.vend(verts)) - m_player.getAngleRadians());
     int32_t x1 = viewAngleToX(a1);
     int32_t x2 = viewAngleToX(a2);
-    
     m_target.verticalScanline(x1, 0xFF, 0xFF, 0xFF, pixels);
     m_target.verticalScanline(x2, 0xFF, 0xFF, 0xFF, pixels);
 }
@@ -195,12 +193,11 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
 void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
     auto subsector = m_map.getSubsectors()[subsectorID];
     auto& segs = m_map.getSegs();
-    auto& verts = m_map.getVertices();
     for (size_t i = 0; i < static_cast<uint16_t>(subsector.segCount); i++) {
         auto seg = segs[subsector.firstSeg + i];        
         drawSeg(seg, pixels);
+        m_count++;
     }
-    m_count++;
 }
 
 Math::Vec2 BSPRenderer::worldToScreen2D(Math::Vec2 in)

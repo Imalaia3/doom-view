@@ -4,6 +4,7 @@
 #include "../wad/elements/thing.h"
 #include "../display/window.h"
 #include "../math/angles.h"
+#include "overlap.h"
 
 class BSPRenderer {
 public:
@@ -13,7 +14,7 @@ public:
     float getFOV() const { return m_FOV; }
 
 private:
-    // Return the front bounding box. Either 0 for right or 1 for left (See WAD::NodeEntry for bounding boxes)
+    // Return the front bounding box. Either 0 for right or 1 for left (See WAD::NodeEntry for bounding boxes). TODO: Inline?
     bool calculateSide(WAD::NodeEntry& node);
     inline float toAngle(Math::Vec2 point) {
         return std::atan2(point.y - m_player.position.y , point.x - m_player.position.x);
@@ -48,4 +49,5 @@ private:
     uint32_t m_count = 0;
     float m_FOV;
     float m_clipangle;
+    OverlapManager m_overlaps;
 };
