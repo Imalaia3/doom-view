@@ -3,11 +3,12 @@
 #include <array>
 #include <functional>
 #include <cassert>
+#include <cstring>
 
 /* Resolves wall overlaps and prevents out of order drawing by maintaining a list of already drawn walls (Interval) */
 class OverlapManager {
 public:
-    static constexpr size_t BUFFER_MAX = 1024;
+    static constexpr size_t BUFFER_MAX = 32;
     struct Interval {
         int32_t start, end;
 
@@ -15,23 +16,37 @@ public:
         Interval(int32_t _start, int32_t _end) : start(_start), end(_end) {}
     };
 
-    OverlapManager() : m_size(0), m_end(m_intervals.begin()) {}
+    OverlapManager() { clear(); }
     // Calculate overlaps for wall newInterval (inclusive) and call callback(start, end) for each new fragment
     void addWall(Interval newInterval, std::function<void(int32_t, int32_t)> callback);
 
     inline void print() {
-        for (size_t i = 0; i < m_size; i++) { printf("[%i, %i], ", m_intervals[i].start, m_intervals[i].end); }
+        auto* ptr = m_mainBuffer;
+        while (ptr != m_mainEnd){
+            printf("[%i, %i], ", ptr->start, ptr->end);
+            ptr++;
+        }
         printf("\n");
+    }
+
+    void clear() {
+        m_mainBuffer[0].start = -0x7fffffff;
+        m_mainBuffer[0].end   = -1;
+        m_mainBuffer[1].start = 1200;
+        m_mainBuffer[1].end   = 0x7fffffff;
+        m_mainEnd = m_mainBuffer+2;
     }
     
 private:
-    inline void push_back(Interval interval) {
-        assert(m_size < BUFFER_MAX); // account for +1 that will be added later so no <=
-        *(m_end++) = interval;
-        m_size++;
-    }
+    Interval m_mainBuffer_storage[BUFFER_MAX];
+    Interval m_temporaryBuffer_storage[BUFFER_MAX];
 
-    size_t m_size = 0; // debugging
-    std::array<Interval, BUFFER_MAX> m_intervals;
-    std::array<Interval, BUFFER_MAX>::iterator m_end;
+    Interval* m_mainBuffer = m_mainBuffer_storage;
+    Interval* m_temporaryBuffer = m_temporaryBuffer_storage;
+    Interval* m_mainEnd;
+
+    void swap(Interval* newend) {
+        std::swap(m_mainBuffer, m_temporaryBuffer);
+        m_mainEnd = newend;
+    }
 };

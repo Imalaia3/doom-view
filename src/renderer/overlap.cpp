@@ -1,39 +1,53 @@
 #include "overlap.h"
 
 void OverlapManager::addWall(Interval newInterval, std::function<void(int32_t, int32_t)> callback) {
-    auto interval = m_intervals.begin();
-    while (interval != m_end and interval->end < newInterval.start) { interval++; }
-
-    //FIXME: Can this be inside the while loop to skip 2 ifs?
-    if (interval != m_end  && newInterval.start >= interval->start && newInterval.end <= interval->end) {
-        return;
-    }
+    Interval* tempstart = m_temporaryBuffer;
+    Interval* start = m_mainBuffer;
     
-    int32_t start = newInterval.start;
-    while (start < newInterval.end && interval != m_end) {
-        if (start >= interval->start) {
-            start = std::min(newInterval.end, interval->end);
-        } else {
-            int32_t newStart = std::min(newInterval.end, interval->start);
-            //FIXME: Optimize min to [(b < a ? b : a) = b] interval->start < newInterval.end below?;
-            if (newStart == interval->start) {
-                callback(start, newStart - 1);
-                interval->start = start;
-            } else if (interval > m_intervals.begin()) {
-                callback(start + 1, newStart);
-                (interval - 1)->end = newInterval.end;
-            }
-            start = newStart;
-        }
-        interval++;
+    while (start->end < newInterval.start - 1) {
+        *(tempstart++) = *(start++);
     }
-    if (start < newInterval.end) {
-        if (interval != m_intervals.begin() && (start == (m_end-1)->end)) {
-            callback(start + 1, newInterval.end);
-            (m_end-1)->end = newInterval.end;
-        } else {
-            callback(start, newInterval.end);
-            push_back(Interval(start, newInterval.end));
+
+    if(newInterval.start < start->start) {
+        if (newInterval.end < start->start - 1) {
+            callback(newInterval.start, newInterval.end);
+            *(tempstart++) = Interval(newInterval.start, newInterval.end);
+            size_t count = m_mainEnd - start;
+            std::memmove(tempstart, start, count * sizeof(Interval));
+            tempstart += count;
+            swap(tempstart);
+            return;
+        }
+
+        callback(newInterval.start, start->start - 1);
+        start->start = newInterval.start;
+    }
+
+    if (newInterval.end <= start->end) { return; }
+
+    Interval* next = start;
+    bool broken = false;
+    while (newInterval.end >= (next+1)->start - 1) {
+        callback(next->end + 1, (next + 1)->start - 1);
+        next++;
+        if (newInterval.end <= next->end) {
+            start->end = next->end;
+            broken = true;
+            break;
         }
     }
+
+    if(!broken) {
+        callback(next->end + 1, newInterval.end);
+        start->end = newInterval.end;
+    }
+
+    if (next == start) { return; }
+
+    *(tempstart++) = *start;
+    next++;
+    size_t count = m_mainEnd - next;
+    std::memmove(tempstart, next, count * sizeof(Interval));
+    tempstart += count + 1;
+    swap(tempstart);
 }
