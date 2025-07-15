@@ -9,13 +9,14 @@ class WADMap {
 public:
     WADMap(WADFile& wad, WAD::FileLump mapLump);
 
-    std::vector<Thing>& getThings() { return m_things; }
-    std::vector<Math::Vec2>& getVertices() { return m_verts; }
-    std::vector<WAD::LinedefEntry>& getLinedefs() { return m_linedefs; }
-    std::vector<WAD::NodeEntry>& getNodes() { return m_nodes; }
-    std::vector<Seg>& getSegs() { return m_segs; }
-    std::vector<WAD::SubsectorEntry>& getSubsectors() { return m_subsectors; }
-    std::vector<WAD::SectorEntry>& getSectors() { return m_sectors; }
+    inline std::vector<Thing>& getThings() { return m_things; }
+    inline std::vector<Math::Vec2>& getVertices() { return m_verts; }
+    inline std::vector<WAD::LinedefEntry>& getLinedefs() { return m_linedefs; }
+    inline std::vector<WAD::SidedefEntry>& getSidedefs() { return m_sidedefs; }
+    inline std::vector<WAD::NodeEntry>& getNodes() { return m_nodes; }
+    inline std::vector<Seg>& getSegs() { return m_segs; }
+    inline std::vector<WAD::SubsectorEntry>& getSubsectors() { return m_subsectors; }
+    inline std::vector<WAD::SectorEntry>& getSectors() { return m_sectors; }
 
     Thing& findThingByType(Thing::ThingType t);
 

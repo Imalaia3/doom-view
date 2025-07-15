@@ -47,6 +47,8 @@ public:
         BLOCKMAP,
         BEHAVIOR
     };
+
+    static constexpr char NO_TEXTURE = '-';
     
 private:
     std::ifstream m_stream;

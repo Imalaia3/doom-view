@@ -25,10 +25,31 @@ public:
         data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
     }
 
+
+    // Set all pixels to black. Extremely slow
+    void clearPixels(void* pixels) {
+        uint32_t* data = (uint32_t*)pixels;
+        for (size_t y = 0; y < m_height; y++) {
+            for (size_t x = 0; x < m_width; x++) {
+                data[y*m_width + x] = 0xFF;
+            }
+        }
+    }
+
     void verticalScanline(uint32_t x, uint8_t r, uint8_t g, uint8_t b, void* pixels) {
         assert(x < m_width);
         uint32_t* data = (uint32_t*)pixels;
         for (uint32_t y = 0; y < m_height; y++) {
+            data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+        }                
+    }
+    
+    void verticalLine(uint32_t x, uint32_t y1, uint32_t y2, uint8_t r, uint8_t g, uint8_t b, void* pixels) {
+        assert(x < m_width);
+        if (y2 >= m_height) y2 = m_height - 1;
+        if (y1 >= m_height) y1 = m_height - 1;
+        uint32_t* data = (uint32_t*)pixels;
+        for (uint32_t y = y1; y <= y2; y++) {
             data[y*m_width + x] = (r << 24) | (g << 16) | (b << 8) | 0xFF;
         }                
     }

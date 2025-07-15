@@ -1,5 +1,6 @@
 #include "overlap.h"
 
+// FIXME FIXME FIXME: Old algorithm might've been correct (but less memory efficient)
 void OverlapManager::addWall(Interval newInterval, std::function<void(int32_t, int32_t)> callback) {
     Interval* tempstart = m_temporaryBuffer;
     Interval* start = m_mainBuffer;

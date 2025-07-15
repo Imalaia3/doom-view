@@ -39,21 +39,6 @@ int main(int argc, char const *argv[]) {
 
 
     renderer.drawFrame();
-
-    OverlapManager mgr;
-    auto cb = [](int32_t s, int32_t e) {
-        printf("Drawing %i %i\n", s, e);
-    };
-    mgr.addWall(OverlapManager::Interval(-5, -2), cb);
-    mgr.addWall(OverlapManager::Interval(3,4), cb);
-    mgr.addWall(OverlapManager::Interval(-2,1), cb);
-    mgr.addWall(OverlapManager::Interval(-1,2), cb);
-    mgr.addWall(OverlapManager::Interval(7,9), cb);
-    mgr.addWall(OverlapManager::Interval(5,7), cb);
-    mgr.addWall(OverlapManager::Interval(6,10), cb);
-    mgr.addWall(OverlapManager::Interval(7,8), cb);
-    mgr.print();
-
     SDL_Delay(5000);
 
     return 0;
