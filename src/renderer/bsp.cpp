@@ -212,16 +212,17 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     auto& sdefs = m_map.getSidedefs();
     Math::Vec2 vbeg = seg.vbeg(verts);
     WAD::SectorEntry& frontsector = m_map.getSectors()[seg.getFrontSector()];
-    float a1 = clipAngle(toAngle(vbeg) - m_player.getAngleRadians()); // = rw_angle1
+    float rw_angle1 = toAngle(vbeg);
+    float a1 = clipAngle(rw_angle1 - m_player.getAngleRadians()); // != rw_angle1 (!!!)
     float a2 = clipAngle(toAngle(seg.vend(verts)) - m_player.getAngleRadians());
     int32_t x1 = viewAngleToX(a1);
     int32_t x2 = viewAngleToX(a2);
 
     // https://github.com/id-Software/DOOM/blob/master/linuxdoom-1.10/r_segs.c#L370
     float rw_normalangle = seg.getAngleRad() + M_PI_2; // angle + 90deg
-    float offsetangle = rw_normalangle - a1;
+    float offsetangle = std::fabs(rw_normalangle - rw_angle1);
     float hyp = Math::distance(m_player.position, vbeg);
-    float rw_distance = hyp * std::sin(offsetangle); // doom does sin(pi/2 - offsetangle) which is equal to sin(offsetangle)
+    float rw_distance = hyp * std::cos(offsetangle); // doom does sin(pi/2 - offsetangle) which is equal to sin(offsetangle)
 
     float rw_scale = scaleFromGlobalAngle(x1, rw_normalangle, rw_distance);
     float rw_scalestep = 0.0f;
@@ -238,7 +239,6 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     float step_y1 = -rw_scalestep * worldtop;
     float origin_y2 = height_2 - worldbottom * rw_scale;
     float step_y2 = -rw_scalestep * worldbottom;
-
 
     // check if middle texture is available
     bool hasMiddle = sdefs[seg.linedef(defs).frontSidedef].middleTex[0] !=  WADFile::NO_TEXTURE;

@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
 
     auto& pl = renderer.getPlayer();
     pl.position.y += 280;
-    pl.setAngleRadians(Math::radians(90));    
+    pl.setAngleRadians(Math::radians(180));    
     renderer.drawFrame();
     SDL_Delay(5000);
 
