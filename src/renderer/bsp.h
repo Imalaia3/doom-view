@@ -35,6 +35,7 @@ private:
     //        because we know what type of angle it would be (a1/a2)
     // Clip angle to -FOV/2 or +FOV/2, assumes angle is adjusted by -m_player.getAngleRadians()
     inline float clipAngle(float angle) {
+        angle = Math::normalizeRad(angle);
         if (angle < -m_clipangle) return -m_clipangle;
         if (angle > m_clipangle)  return m_clipangle;
         return angle;

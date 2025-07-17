@@ -12,8 +12,7 @@ namespace Math {
     // Make angle element of [-pi, pi] by wrapping it
     inline double normalizeRad(double angle) {
         angle = std::fmod(angle + M_PI, TWO_PI);
-        if (angle < 0)
-            return (angle + TWO_PI) - M_PI;
+        if (angle <= 0) angle += TWO_PI;
         return angle - M_PI;
     }
 

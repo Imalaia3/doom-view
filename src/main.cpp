@@ -37,7 +37,9 @@ int main(int argc, char const *argv[]) {
     SDLWindow win(1200,800);
     BSPRenderer renderer(e1m1, win);
 
-
+    auto& pl = renderer.getPlayer();
+    pl.position.y += 280;
+    pl.setAngleRadians(Math::radians(90));    
     renderer.drawFrame();
     SDL_Delay(5000);
 

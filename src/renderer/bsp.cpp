@@ -91,7 +91,7 @@ float BSPRenderer::scaleFromGlobalAngle(float x, float rw_normalangle, float rw_
     float viewangle = m_player.getAngleRadians();
     float startangle = xtoviewangle[x];
     // float visangle = viewangle + startangle;
-    float projection = (m_target.getWidth() / 2.0f) + std::tan(m_clipangle); // if this was doom it would just be width/2.0 but here fov isn't always 90
+    float projection = (m_target.getWidth() / 2.0f) / std::tan(m_clipangle); // if this was doom it would just be width/2.0 but here fov isn't always 90
     float numerator = projection * std::cos(rw_normalangle - (viewangle + startangle)); // DOOM: angleb = ANG90 + (visangle-rw_normalangle); Inverting for cos()
     float denominator = rw_distance * std::cos(startangle); // DOOM: anglea = ANG90 + (visangle-viewangle); Inverting for cos()
     // max = 64*FRACUNIT, min = 256, fracunit = (1 << 16) fixed point -> below
@@ -239,10 +239,6 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     float origin_y2 = height_2 - worldbottom * rw_scale;
     float step_y2 = -rw_scalestep * worldbottom;
 
-    printf("Front Sidedef Info:\n");
-    printf("\tUpper Texture:  %.8s\n", sdefs[seg.linedef(defs).frontSidedef].upperTex);
-    printf("\tMiddle Texture: %.8s\n", sdefs[seg.linedef(defs).frontSidedef].middleTex);
-    printf("\tLower Texture:  %.8s\n", sdefs[seg.linedef(defs).frontSidedef].lowerTex);
 
     // check if middle texture is available
     bool hasMiddle = sdefs[seg.linedef(defs).frontSidedef].middleTex[0] !=  WADFile::NO_TEXTURE;
