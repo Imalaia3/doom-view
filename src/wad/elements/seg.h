@@ -8,32 +8,24 @@
 class Seg {
 public:
     Seg() {}
-    Seg(WAD::SegEntry entry) {
-        m_entry = entry;
+    Seg(WAD::SegEntry entry, const std::vector<Math::Vec2>& verts, const std::vector<WAD::SectorEntry>& sectors, const std::vector<WAD::LinedefEntry>& ldefs, const std::vector<WAD::SidedefEntry>&  sdefs);
+
+    inline WAD::SectorEntry frontSector() const {
+        return m_frontSector;
+    }
+    bool hasBackSector() const { return m_hasBackSector; }
+    inline WAD::SectorEntry backSector() const {
+        return m_backSector;
     }
 
-    void updateSectors(uint32_t front, uint32_t back, bool backValid) {
-        m_frontSectorID = front;
-        m_backSectorID  = back;
-        m_hacBackSector = backValid;
+    inline Math::Vec2 vbeg() const {
+        return m_vbeg;
     }
-
-    uint32_t getFrontSector() const {
-        return m_frontSectorID;
+    inline Math::Vec2 vend() const {
+        return m_vend;
     }
-    bool hasBackSector() const { return m_hacBackSector; }
-    uint32_t getBackSector() const {
-        return m_backSectorID;
-    }
-
-    Math::Vec2 vbeg(const std::vector<Math::Vec2>& vecs) const {
-        return vecs[m_entry.vbeg];
-    }
-    Math::Vec2 vend(const std::vector<Math::Vec2>& vecs) const {
-        return vecs[m_entry.vend];
-    }
-    WAD::LinedefEntry linedef(const std::vector<WAD::LinedefEntry>& linedefs) const {
-        return linedefs[m_entry.linedef];
+    inline WAD::LinedefEntry linedef() const {
+        return m_linedef;
     }
     
     WAD::SegEntry getEntry() const { return m_entry; }
@@ -42,9 +34,10 @@ public:
 
 
 private:
-    uint32_t m_frontSectorID;
-    uint32_t m_backSectorID;
     float m_angleRad;
-    bool m_hacBackSector = false;
+    bool m_hasBackSector = false;
     WAD::SegEntry m_entry;
+    Math::Vec2 m_vbeg, m_vend;
+    WAD::SectorEntry m_frontSector, m_backSector;
+    WAD::LinedefEntry m_linedef;
 };

@@ -87,42 +87,16 @@ void WADMap::loadSectors(WADFile &wad, WAD::FileLump lump) {
 }
 
 void WADMap::loadSegs(WADFile &wad, WAD::FileLump lump) {
+    assert(m_sectors.size() > 0);
+    assert(m_linedefs.size() > 0);
+    assert(m_sidedefs.size() > 0);
+    assert(m_verts.size() > 0);
+
     auto& stream = wad.getStream();
     stream.seekg(lump.filepos, std::ios_base::beg);
     for (size_t i = 0; i < lump.size / sizeof(WAD::SegEntry); i+=1) {
         WAD::SegEntry entry{};
         Utils::streamRead(&entry, sizeof(WAD::SegEntry), stream);
-        m_segs.push_back(Seg(entry));
+        m_segs.push_back(Seg(entry, m_verts, m_sectors, m_linedefs, m_sidedefs));
     }
-    /* Calculate Sector Fields */
-    assert(m_sectors.size() > 0);
-    assert(m_linedefs.size() > 0);
-    assert(m_sidedefs.size() > 0);
-    for (auto &&seg : m_segs) {
-        auto entry = seg.getEntry();
-        auto linedef = seg.linedef(m_linedefs);
-        
-        // Front is sidedef1 aka backSidedef
-        uint32_t frontSidedef = linedef.backSidedef;
-        uint32_t backSidedef = linedef.frontSidedef;
-        if(entry.dir == 0) { // Front is sidedef0 aka frontSidedef
-            frontSidedef = linedef.frontSidedef;
-            backSidedef = linedef.backSidedef;
-        }
-        uint32_t frontSectorID = m_sidedefs[frontSidedef].lookatSector; // always has a front sector
-        uint32_t backSectorID = 0;
-        // check if it has a back sector by checking bit 2
-        bool hasBack = false;
-        constexpr uint16_t ML_TWOSIDED = 0x0004;
-        if(linedef.flags & ML_TWOSIDED) {
-            hasBack = true;
-            backSectorID = m_sidedefs[backSidedef].lookatSector;
-        }
-        seg.updateSectors(frontSectorID, backSectorID, hasBack);        
-
-        // Convert angles
-        seg.setAngleRad((M_PI * (float)entry.angleBam)/(float)(32768));
-    }
-    
-
 }

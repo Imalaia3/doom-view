@@ -189,8 +189,8 @@ inline int32_t BSPRenderer::viewAngleToX(float angle) {
 }
 
 bool BSPRenderer::isSegVisible(Seg &seg) {
-    float a1 = Math::normalizeRad(toAngle(seg.vbeg(m_map.getVertices())) - m_player.getAngleRadians());
-    float a2 = Math::normalizeRad(toAngle(seg.vend(m_map.getVertices())) - m_player.getAngleRadians());
+    float a1 = Math::normalizeRad(toAngle(seg.vbeg()) - m_player.getAngleRadians());
+    float a2 = Math::normalizeRad(toAngle(seg.vend()) - m_player.getAngleRadians());
     // Backface culling. Although logically shouln't it be > 0.0?
     if (a1 - a2 < 0.0)
         return false;
@@ -207,14 +207,12 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     if (!isSegVisible(seg) || seg.hasBackSector()) {
         return;
     }
-    auto& verts = m_map.getVertices();
-    auto& defs = m_map.getLinedefs();
     auto& sdefs = m_map.getSidedefs();
-    Math::Vec2 vbeg = seg.vbeg(verts);
-    WAD::SectorEntry& frontsector = m_map.getSectors()[seg.getFrontSector()];
+    Math::Vec2 vbeg = seg.vbeg();
+    WAD::SectorEntry frontsector = seg.frontSector();
     float rw_angle1 = toAngle(vbeg);
     float a1 = clipAngle(rw_angle1 - m_player.getAngleRadians()); // != rw_angle1 (!!!)
-    float a2 = clipAngle(toAngle(seg.vend(verts)) - m_player.getAngleRadians());
+    float a2 = clipAngle(toAngle(seg.vend()) - m_player.getAngleRadians());
     int32_t x1 = viewAngleToX(a1);
     int32_t x2 = viewAngleToX(a2);
 
@@ -241,8 +239,8 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     float step_y2 = -rw_scalestep * worldbottom;
 
     // check if middle texture is available
-    bool hasMiddle = sdefs[seg.linedef(defs).frontSidedef].middleTex[0] !=  WADFile::NO_TEXTURE;
-    m_count = sdefs[seg.linedef(defs).frontSidedef].middleTex[0];
+    bool hasMiddle = sdefs[seg.linedef().frontSidedef].middleTex[0] !=  WADFile::NO_TEXTURE;
+    m_count = sdefs[seg.linedef().frontSidedef].middleTex[0];
     auto wallCallback = [this, pixels, &origin_y1, &origin_y2, step_y1, step_y2, hasMiddle](int32_t s, int32_t e) {
         if (hasMiddle) {      
             for (int32_t x = s; x <= e; x++) {
