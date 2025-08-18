@@ -18,10 +18,12 @@ int main(int argc, char const *argv[]) {
 
     WADFile wad(argv[1]);
     printf("%s: %i lumps\n", argv[1], wad.getLumpCount());
-    for (const auto &lump : wad.getLumps()) {
-        char string[9]; std::memcpy(string, lump.name, 8);
-        string[8] = '\0';
-        printf("Name: %s\n", string);
+    if (false) {
+        for (const auto &lump : wad.getLumps()) {
+            char string[9]; std::memcpy(string, lump.name, 8);
+            string[8] = '\0';
+            printf("Name: %s\n", string);
+        }
     }
 
     TGAWriter bossWriter(41, 73);
@@ -38,10 +40,10 @@ int main(int argc, char const *argv[]) {
     BSPRenderer renderer(e1m1, win);
 
     auto& pl = renderer.getPlayer();
-    pl.position.y += 280;
-    pl.setAngleRadians(Math::radians(180));    
+    pl.position.y += 430;
+    pl.setAngleRadians(0);    
     renderer.drawFrame();
     SDL_Delay(5000);
-
+    
     return 0;
 }

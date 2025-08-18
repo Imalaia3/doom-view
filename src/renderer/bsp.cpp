@@ -189,16 +189,24 @@ inline int32_t BSPRenderer::viewAngleToX(float angle) {
 }
 
 bool BSPRenderer::isSegVisible(Seg &seg) {
-    float a1 = Math::normalizeRad(toAngle(seg.vbeg()) - m_player.getAngleRadians());
-    float a2 = Math::normalizeRad(toAngle(seg.vend()) - m_player.getAngleRadians());
-    // Backface culling. Although logically shouln't it be > 0.0?
-    if (a1 - a2 < 0.0)
+    // Custom (cleaner and faster(?)) version.
+    auto p1 = seg.vbeg();
+    auto p2 = seg.vend();
+
+    // Vector based backface culling. 1 less atan2 and normalizeRad.
+    auto dir = p2 - p1;
+    auto n = Math::Vec2(-dir.y, dir.x); // this works for some reason
+    auto v = Math::Vec2((p1.x + p2.x)/2.0f - m_player.position.x, (p1.y + p2.y)/2.0f - m_player.position.y);
+    auto ndotv = Math::dot(n, v);
+    if (ndotv < 0.0f) {
         return false;
-    // Frustum Culling
-    if (a1 < -m_clipangle && a2 < -m_clipangle)
+    }
+    // Angle based frustum culling
+    float a1 = Math::normalizeRad(toAngle(p1) - m_player.getAngleRadians());
+    float a2 = Math::normalizeRad(toAngle(p2) - m_player.getAngleRadians());
+    if (std::fabs(a1) > m_clipangle && std::fabs(a2) > m_clipangle) {
         return false;
-    if (a1 > m_clipangle && a2 > m_clipangle)
-        return false;
+    }
     return true;
 }
 
@@ -240,11 +248,23 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
 
     // check if middle texture is available
     bool hasMiddle = sdefs[seg.linedef().frontSidedef].middleTex[0] !=  WADFile::NO_TEXTURE;
-    m_count = sdefs[seg.linedef().frontSidedef].middleTex[0];
+
+    // just so it looks pretty
+    auto hash_texture = [](char* texname) {
+        uint32_t result = 0x00;
+        for (size_t i = 0; i < 8; i++) {
+            if (texname[i] == '\0') break;
+            // https://stackoverflow.com/questions/2351087/what-is-the-best-32bit-hash-function-for-short-strings-tag-names/2351171#2351171
+            result = 37 * result + texname[i];
+        }
+        return result;
+    };
+
+    m_count = hash_texture(sdefs[seg.linedef().frontSidedef].middleTex) * (abs(seg.getEntry().angleBam)+1);
     auto wallCallback = [this, pixels, &origin_y1, &origin_y2, step_y1, step_y2, hasMiddle](int32_t s, int32_t e) {
         if (hasMiddle) {      
             for (int32_t x = s; x <= e; x++) {
-                m_target.verticalLine(x, origin_y1 - 1, origin_y2, m_count & 0xF, m_count & 0xF0, m_count, pixels);
+                m_target.verticalLine(x, origin_y1 - 1, origin_y2, m_count & 0xFF, (m_count & 0xFF00) >> 8,(m_count & 0xFF0000) >> 16, pixels);
                 origin_y1 += step_y1;
                 origin_y2 += step_y2;
             }
@@ -252,7 +272,7 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
             printf("Walls without middle textures are not supported.\n");
         }
     };
-    m_overlaps.addWall(OverlapManager::Interval(x1, x2), wallCallback);
+    m_overlaps.addWall(OverlapManager::Interval(x1, x2), wallCallback); 
 }
 
 void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {

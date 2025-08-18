@@ -52,7 +52,7 @@ void SDLWindow::drawLine(int x, int y, int x2, int y2, uint8_t r, uint8_t g, uin
         }
     } else {
         for (int i=0;i!=endVal;i+=incrementVal) {
-            if (outOfBoundsX(x+(j >> 16)) || outOfBoundsY(y+i))
+            if (outOfBoundsX(x+i) || outOfBoundsY(y+(j >> 16)))
                 break;
             putPixel(x+i,y+(j >> 16), r, g, b, pixels);
             j+=decInc;
