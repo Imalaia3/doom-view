@@ -215,6 +215,10 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
     if (!isSegVisible(seg) || seg.hasBackSector()) {
         return;
     }
+    // auto p1 = worldToScreen2D(seg.vbeg());
+    // auto p2 = worldToScreen2D(seg.vend());
+    // m_target.drawLine(p1.x, p1.y, p2.x, p2.y, 0xFF, 0xFF, 0x00, pixels);
+
     auto& sdefs = m_map.getSidedefs();
     Math::Vec2 vbeg = seg.vbeg();
     WAD::SectorEntry frontsector = seg.frontSector();
@@ -262,9 +266,11 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
 
     m_count = hash_texture(sdefs[seg.linedef().frontSidedef].middleTex) * (abs(seg.getEntry().angleBam)+1);
     auto wallCallback = [this, pixels, &origin_y1, &origin_y2, step_y1, step_y2, hasMiddle](int32_t s, int32_t e) {
-        if (hasMiddle) {      
+        if (hasMiddle) {
             for (int32_t x = s; x <= e; x++) {
-                m_target.verticalLine(x, origin_y1 - 1, origin_y2, m_count & 0xFF, (m_count & 0xFF00) >> 8,(m_count & 0xFF0000) >> 16, pixels);
+                m_target.verticalLine(x, Utils::ftou32_safe(origin_y1 - 1), Utils::ftou32_safe(origin_y2),
+                    m_count & 0xFF, (m_count & 0xFF00) >> 8,(m_count & 0xFF0000) >> 16, pixels
+                );
                 origin_y1 += step_y1;
                 origin_y2 += step_y2;
             }
@@ -284,8 +290,7 @@ void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
     }
 }
 
-Math::Vec2 BSPRenderer::worldToScreen2D(Math::Vec2 in)
-{
+Math::Vec2 BSPRenderer::worldToScreen2D(Math::Vec2 in) {
     return Math::Vec2(
         ((m_target.getWidth() - 1) / (m_maxX - m_minX)) * (in.x - m_minX),
         -((m_target.getHeight() - 1) / (m_maxY - m_minY)) * (in.y - m_maxY)

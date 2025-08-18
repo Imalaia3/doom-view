@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]) {
     BSPRenderer renderer(e1m1, win);
 
     auto& pl = renderer.getPlayer();
-    pl.position.y += 430;
+    pl.position.y += 400;
     pl.setAngleRadians(0);    
     renderer.drawFrame();
     SDL_Delay(5000);
