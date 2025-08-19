@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -lSDL2 -g -fsanitize=address
+CXXFLAGS := -std=c++17 -Wall -Wextra -g -fsanitize=address
 
 SRC_DIR := src
 OBJ_DIR := build
@@ -10,7 +10,7 @@ OBJECTS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SOURCES))
 all: viewer
 
 viewer: $(OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lSDL2
 
 $(OBJ_DIR)/%.o:
 	@mkdir -p $(dir $@)

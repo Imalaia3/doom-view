@@ -41,8 +41,11 @@ int main(int argc, char const *argv[]) {
 
     auto& pl = renderer.getPlayer();
     pl.position.y += 400;
-    pl.setAngleRadians(0);    
+    pl.setAngleRadians(0);
+    auto t1 = std::chrono::high_resolution_clock::now();
     renderer.drawFrame();
+    auto t2 = std::chrono::high_resolution_clock::now();
+    printf("Rendering took: %f ms\n", Utils::deltaTime<std::milli>(t2, t1));
     SDL_Delay(5000);
     
     return 0;
