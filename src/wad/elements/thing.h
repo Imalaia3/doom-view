@@ -28,6 +28,7 @@ public:
     enum class ThingType {
         PLAYERONE = 1
     };
+    static constexpr float PLAYER_VIEWHEIGHT = 41; // Player body height is 56 but eyes are at 41. https://doomwiki.org/wiki/Player
 
 private:
     float m_angleRad, m_angleDeg;

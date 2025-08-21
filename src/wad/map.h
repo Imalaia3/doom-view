@@ -2,7 +2,7 @@
 #include "wad.h"
 #include "../utils.h"
 #include "elements/thing.h"
-#include "elements/seg.h"
+#include "../renderer/seg.h"
 
 
 class WADMap {

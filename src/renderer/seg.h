@@ -1,7 +1,12 @@
 #pragma once
-#include "../structures.h"
-#include "../../math/vector.h"
-#include "../../math/angles.h"
+#include "../wad/structures.h"
+#include "../wad/elements/thing.h"
+#include "../math/vector.h"
+#include "../math/angles.h"
+#include "../math/projection.h"
+#include "../utils.h"
+#include "../display/window.h"
+#include "overlap.h"
 #include <vector>
 
 
@@ -9,6 +14,17 @@ class Seg {
 public:
     Seg() {}
     Seg(WAD::SegEntry entry, const std::vector<Math::Vec2>& verts, const std::vector<WAD::SectorEntry>& sectors, const std::vector<WAD::LinedefEntry>& ldefs, const std::vector<WAD::SidedefEntry>&  sdefs);
+
+    struct RendererState {
+        const Thing& player;
+        OverlapManager& overlaps;
+        float clipangle;
+        float fov;
+        const std::vector<WAD::SidedefEntry>& sidedefs; // todo: maybe just give our sidedef?
+        const std::vector<float>& xtoviewangle; // todo: make shared_ptr for all seg/etc. instances
+    };
+
+    void draw(const RendererState& state, SDLWindow& target, void* pixels);
 
     inline WAD::SectorEntry frontSector() const {
         return m_frontSector;
@@ -34,6 +50,10 @@ public:
 
 
 private:
+    // startangle = state.xtoviewangle[x]
+    float scaleFromGlobalAngle(float startangle, float rw_normalangle, float rw_distance, float viewangle, float clipangle, uint32_t viewwidth);
+    bool isVisible(float& rw_angle1, float& angle1, float& angle2, const Math::Vec2& viewpos, float viewangle, float clipangle);
+
     float m_angleRad;
     bool m_hasBackSector = false;
     WAD::SegEntry m_entry;
