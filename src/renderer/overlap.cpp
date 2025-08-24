@@ -52,3 +52,32 @@ void OverlapManager::addWall(Interval newInterval, std::function<void(int32_t, i
     tempstart += count + 1;
     swap(tempstart);
 }
+
+void OverlapManager::addWallPass(Interval newInterval, std::function<void(int32_t, int32_t)> callback) {
+    Interval* start = m_mainBuffer;
+    
+    while (start->end < newInterval.start - 1) {
+        start++;
+    }
+
+    if(newInterval.start < start->start) {
+        if (newInterval.end < start->start - 1) {
+            callback(newInterval.start, newInterval.end);
+            return;
+        }
+        callback(newInterval.start, start->start - 1);
+    }
+
+    if (newInterval.end <= start->end) { return; }
+
+    Interval* next = start;
+    while (newInterval.end >= (next+1)->start - 1) {
+        callback(next->end + 1, (next + 1)->start - 1);
+        next++;
+        if (newInterval.end <= next->end) {
+            return;
+        }
+    }
+
+    callback(next->end + 1, newInterval.end);
+}

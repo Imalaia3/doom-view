@@ -21,14 +21,14 @@ Seg::Seg(WAD::SegEntry entry, const std::vector<Math::Vec2> &verts, const std::v
     constexpr uint16_t ML_TWOSIDED = 0x0004;
     if(m_linedef.flags & ML_TWOSIDED) {
         m_hasBackSector = true;
-        m_backSector = sectors[sdefs[frontSidedefIdx].lookatSector];
+        m_backSector = sectors[sdefs[m_linedef.backSidedef].lookatSector];
     }
 
     // Convert angles
     setAngleRad((M_PI * (float)m_entry.angleBam)/(float)(32768));
 }
 
-void Seg::draw(const RendererState& state, SDLWindow& target, void* pixels) {
+void Seg::drawSolid(const RendererState& state, SDLWindow& target, void* pixels) {
     float rw_angle1;
     float a1;
     float a2;
@@ -83,10 +83,12 @@ void Seg::draw(const RendererState& state, SDLWindow& target, void* pixels) {
     };
 
     uint32_t drawColor = hash_texture(sdefs[m_linedef.frontSidedef].middleTex) * (abs(m_entry.angleBam)+1);
-    auto wallCallback = [this, pixels, &origin_y1, &origin_y2, step_y1, step_y2, hasMiddle, &target, drawColor](int32_t s, int32_t e) {
+    auto wallCallback = [pixels, &origin_y1, &origin_y2, step_y1, step_y2, hasMiddle, &target, drawColor, &state](int32_t s, int32_t e) {
         if (hasMiddle) {
             for (int32_t x = s; x <= e; x++) {
-                target.verticalLine(x, Utils::ftou32_safe(origin_y1 - 1), Utils::ftou32_safe(origin_y2),
+                int32_t clippedTop = std::max((int32_t)(origin_y1 - 1), state.overlaps.ceilclip[x] + 1);
+                int32_t clippedBottom = std::min((int32_t)(origin_y2), state.overlaps.floorclip[x] - 1);
+                target.verticalLine(x, Utils::ftou32_safe(clippedTop), Utils::ftou32_safe(clippedBottom),
                     drawColor & 0xFF, (drawColor & 0xFF00) >> 8,(drawColor & 0xFF0000) >> 16, pixels
                 );
                 origin_y1 += step_y1;
@@ -97,6 +99,118 @@ void Seg::draw(const RendererState& state, SDLWindow& target, void* pixels) {
         }
     };
     state.overlaps.addWall(OverlapManager::Interval(x1, x2), wallCallback);
+}
+
+void Seg::drawHollow(const RendererState &state, SDLWindow &target, void *pixels) {
+    float rw_angle1;
+    float a1;
+    float a2;
+    if (!isVisible(rw_angle1, a1, a2, state.player.position, state.player.getAngleRadians(), state.clipangle)) {
+        return;
+    }
+
+    a1 = std::clamp(static_cast<float>(a1), -state.clipangle, state.clipangle); // != rw_angle1 (!!!)
+    a2 = std::clamp(static_cast<float>(a2), -state.clipangle, state.clipangle);
+
+
+    uint32_t viewwidth = target.getWidth();
+    float viewangle = state.player.getAngleRadians(); // todo: give access to m_angleRad directly
+    auto& sdefs = state.sidedefs;
+
+    int32_t x1 = Math::viewAngleToX(a1, state.clipangle, viewwidth);
+    int32_t x2 = Math::viewAngleToX(a2, state.clipangle, viewwidth);
+
+    // https://github.com/id-Software/DOOM/blob/master/linuxdoom-1.10/r_segs.c#L370
+    float rw_normalangle = m_angleRad + M_PI_2; // angle + 90deg
+    float offsetangle = std::fabs(rw_normalangle - rw_angle1);
+    float hyp = Math::distance(state.player.position, m_vbeg);
+    float rw_distance = hyp * std::cos(offsetangle); // doom does sin(pi/2 - offsetangle) which is equal to cos(offsetangle)
+
+    float rw_scale = scaleFromGlobalAngle(state.xtoviewangle[x1], rw_normalangle, rw_distance, viewangle, state.clipangle, viewwidth);
+    float rw_scalestep = 0.0f;
+    if (x2 > x1) {
+        float scale2 = scaleFromGlobalAngle(state.xtoviewangle[x2], rw_normalangle, rw_distance, viewangle, state.clipangle, viewwidth);
+        rw_scalestep = (scale2 - rw_scale) / (x2 - x1);
+    }
+
+    float frontsector_worldtop = m_frontSector.ceilHeight - Thing::PLAYER_VIEWHEIGHT;
+    float frontsector_worldbottom = m_frontSector.floorHeight - Thing::PLAYER_VIEWHEIGHT;
+    float backsector_worldtop = m_backSector.ceilHeight - Thing::PLAYER_VIEWHEIGHT;
+    float backsector_worldbottom = m_backSector.floorHeight - Thing::PLAYER_VIEWHEIGHT;
+    float height_2 = target.getHeight() / 2.0f;
+
+    auto sidedef = sdefs[m_linedef.frontSidedef];
+    bool hasUpperWall = sidedef.upperTex[0] != '-' && backsector_worldtop < frontsector_worldtop; // front wall taller than back, fill gap
+    bool hasLowerWall = sidedef.lowerTex[0] != '-' && backsector_worldbottom > frontsector_worldbottom; // back wall taller than front, fill gap
+
+    // Upper (y1) and Lower (y2) bounds for the entire wall
+    float wall_origin_y1 = height_2 - frontsector_worldtop * rw_scale;
+    float wall_step_y1 = -rw_scalestep * frontsector_worldtop;
+    float wall_origin_y2 = height_2 - frontsector_worldbottom * rw_scale;
+    float wall_step_y2 = -rw_scalestep * frontsector_worldbottom;
+
+    // Upper (y1) and Lower (y2) bounds for the portal (hollow part) contained within the wall
+    // Their value depends on which parts of the wall are drawn (upper/lower)
+    float portal_origin_y1 = 0.0f; 
+    float portal_step_y1 = 0.0f;
+    float portal_origin_y2 = 0.0f;
+    float portal_step_y2 = 0.0f;
+    // TODO: Add cases where heights are the same for changing textures/light levels
+    // Affects y1
+    if (hasUpperWall) {
+        portal_origin_y1 = height_2 - backsector_worldtop * rw_scale;
+        portal_step_y1 = -rw_scalestep * backsector_worldtop;
+    }
+    // Affects y2
+    if (hasLowerWall) {
+        portal_origin_y2 = height_2 - backsector_worldbottom * rw_scale;
+        portal_step_y2 = -rw_scalestep * backsector_worldbottom;
+    }
+
+    auto hash_texture = [](const char* texname) {
+        uint32_t result = 0x00;
+        for (size_t i = 0; i < 8; i++) {
+            if (texname[i] == '\0') break;
+            result = 37 * result + texname[i];
+        }
+        return result;
+    };
+
+    uint32_t drawColor = (hash_texture(sdefs[m_linedef.frontSidedef].upperTex) + hash_texture(sdefs[m_linedef.frontSidedef].lowerTex)) * (abs(m_entry.angleBam)+1);
+    auto wallCallback = [pixels, &wall_origin_y1, &wall_origin_y2, wall_step_y1, wall_step_y2, hasUpperWall, hasLowerWall, &target, drawColor, &state, &portal_origin_y1, &portal_origin_y2, portal_step_y1, portal_step_y2](int32_t s, int32_t e) {
+        for (int32_t x = s; x <= e; x++) {
+            if (hasUpperWall) {
+                if (portal_origin_y1 > 0.0f) {
+                    int32_t clippedTop = std::max((int32_t)(wall_origin_y1 - 1), state.overlaps.ceilclip[x] + 1);
+                    int32_t clippedBottom = std::min((int32_t)(portal_origin_y1), state.overlaps.floorclip[x] - 1);
+                    target.verticalLine(x, Utils::ftou32_safe(clippedTop), Utils::ftou32_safe(clippedBottom),
+                        drawColor & 0xFF, (drawColor & 0xFF00) >> 8,(drawColor & 0xFF0000) >> 16, pixels
+                    );
+                    if (state.overlaps.ceilclip[x] < clippedBottom) {
+                        state.overlaps.ceilclip[x] = clippedBottom;
+                    }
+                }
+                portal_origin_y1 += portal_step_y1;
+            }
+            if (hasLowerWall) {
+                if ((portal_origin_y2 - 1) < target.getHeight()) {
+                    int32_t clippedTop = std::max((int32_t)(portal_origin_y2 - 1), state.overlaps.ceilclip[x] + 1);
+                    int32_t clippedBottom = std::min((int32_t)(wall_origin_y2), state.overlaps.floorclip[x] - 1);    
+                    target.verticalLine(x, Utils::ftou32_safe(clippedTop), Utils::ftou32_safe(clippedBottom),
+                        drawColor & 0xFF, (drawColor & 0xFF00) >> 8,(drawColor & 0xFF0000) >> 16, pixels
+                    );
+                    if (state.overlaps.floorclip[x] > clippedTop) {
+                        state.overlaps.floorclip[x] = clippedTop;
+                    }
+                }
+                portal_origin_y2 += portal_step_y2;
+            }
+
+            wall_origin_y1 += wall_step_y1;
+            wall_origin_y2 += wall_step_y2;
+        }
+    };
+    state.overlaps.addWallPass(OverlapManager::Interval(x1, x2), wallCallback);
 }
 
 float Seg::scaleFromGlobalAngle(float startangle, float rw_normalangle, float rw_distance, float viewangle, float clipangle, uint32_t viewwidth) {

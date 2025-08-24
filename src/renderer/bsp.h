@@ -16,10 +16,6 @@ public:
 private:
     // Return the front bounding box. Either 0 for right or 1 for left (See WAD::NodeEntry for bounding boxes). TODO: Inline?
     bool calculateSide(WAD::NodeEntry& node);
-    inline float toAngle(Math::Vec2 point) {
-        return std::atan2(point.y - m_player.position.y , point.x - m_player.position.x);
-    }
-
     // Calculates xtoviewangle table
     void calculateAngleTable();
     // generates a scale based off of the screen x, the seg angle and the distance from the viewer
@@ -37,8 +33,6 @@ private:
     WADMap& m_map;
     SDLWindow& m_target;
     Thing m_player;
-    // Only for testing
-    uint32_t m_count = 0;
     float m_FOV;
     float m_clipangle;
     OverlapManager m_overlaps;

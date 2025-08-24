@@ -4,6 +4,8 @@
 #include <functional>
 #include <cassert>
 #include <cstring>
+#include <stdint.h>
+#include <vector>
 
 /* Resolves wall overlaps and prevents out of order drawing by maintaining a list of already drawn walls (Interval) */
 class OverlapManager {
@@ -16,9 +18,11 @@ public:
         Interval(int32_t _start, int32_t _end) : start(_start), end(_end) {}
     };
 
-    OverlapManager() { clear(); }
+    OverlapManager(uint32_t screenWidth, uint32_t screenHeight) { clear(screenWidth, screenHeight); }
     // Calculate overlaps for wall newInterval (inclusive) and call callback(start, end) for each new fragment
     void addWall(Interval newInterval, std::function<void(int32_t, int32_t)> callback);
+    // Same as addWall() but doesn't affect overlap array
+    void addWallPass(Interval newInterval, std::function<void(int32_t, int32_t)> callback);
 
     inline void print() {
         auto* ptr = m_mainBuffer;
@@ -29,14 +33,20 @@ public:
         printf("\n");
     }
 
-    void clear() {
+    void clear(uint32_t screenWidth, uint32_t screenHeight) {
         m_mainBuffer[0].start = -0x7fffffff;
         m_mainBuffer[0].end   = -1;
-        m_mainBuffer[1].start = 1200;
+        m_mainBuffer[1].start = screenWidth;
         m_mainBuffer[1].end   = 0x7fffffff;
         m_mainEnd = m_mainBuffer+2;
+        // Won't(?) leak memory.
+        floorclip = std::vector<int32_t>(screenWidth, screenHeight);
+        ceilclip  = std::vector<int32_t>(screenWidth, -1);
     }
-    
+
+    std::vector<int32_t> floorclip; // filled with screen height. If floor value is less, change it
+    std::vector<int32_t> ceilclip; // filled with -1. If ceil value is greater, change it.
+        
 private:
     Interval m_mainBuffer_storage[BUFFER_MAX];
     Interval m_temporaryBuffer_storage[BUFFER_MAX];

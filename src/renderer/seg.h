@@ -24,7 +24,8 @@ public:
         const std::vector<float>& xtoviewangle; // todo: make shared_ptr for all seg/etc. instances
     };
 
-    void draw(const RendererState& state, SDLWindow& target, void* pixels);
+    void drawSolid(const RendererState& state, SDLWindow& target, void* pixels);
+    void drawHollow(const RendererState& state, SDLWindow& target, void* pixels);
 
     inline WAD::SectorEntry frontSector() const {
         return m_frontSector;
@@ -47,12 +48,12 @@ public:
     WAD::SegEntry getEntry() const { return m_entry; }
     void setAngleRad(float angle) { m_angleRad = angle; }
     float getAngleRad() const { return m_angleRad; }
+    bool isVisible(float& rw_angle1, float& angle1, float& angle2, const Math::Vec2& viewpos, float viewangle, float clipangle);
 
 
 private:
     // startangle = state.xtoviewangle[x]
     float scaleFromGlobalAngle(float startangle, float rw_normalangle, float rw_distance, float viewangle, float clipangle, uint32_t viewwidth);
-    bool isVisible(float& rw_angle1, float& angle1, float& angle2, const Math::Vec2& viewpos, float viewangle, float clipangle);
 
     float m_angleRad;
     bool m_hasBackSector = false;

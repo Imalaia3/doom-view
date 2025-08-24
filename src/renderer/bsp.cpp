@@ -1,6 +1,6 @@
 #include "bsp.h"
 
-BSPRenderer::BSPRenderer(WADMap& map, SDLWindow &renderTarget) : m_map(map), m_target(renderTarget) {    
+BSPRenderer::BSPRenderer(WADMap& map, SDLWindow &renderTarget) : m_map(map), m_target(renderTarget), m_overlaps(renderTarget.getWidth(), renderTarget.getHeight()) {    
     m_player = Thing(map.findThingByType(Thing::ThingType::PLAYERONE));
     m_nodes = m_map.getNodes();
     m_player.setAngleDegrees(90);
@@ -22,8 +22,7 @@ BSPRenderer::BSPRenderer(WADMap& map, SDLWindow &renderTarget) : m_map(map), m_t
 }
 
 void BSPRenderer::drawFrame() {
-    m_overlaps.clear();
-    m_count = 0;
+    m_overlaps.clear(m_target.getWidth(), m_target.getHeight());
     void* drawPixels = m_target.renderBegin();
     m_target.clearPixels(drawPixels); // for debugging
 
@@ -128,8 +127,8 @@ bool BSPRenderer::insideFrustum(Math::BoundingBox bbox) {
 
     if (lutx == 1 && luty == 1) { return true; }
     
-    float a1 = Math::normalizeRad(toAngle(points[lut[luty*3+lutx][0]]) - m_player.getAngleRadians());
-    float a2 = Math::normalizeRad(toAngle(points[lut[luty*3+lutx][1]]) - m_player.getAngleRadians());
+    float a1 = Math::normalizeRad(Math::pointToAngle(points[lut[luty*3+lutx][0]], m_player.position) - m_player.getAngleRadians());
+    float a2 = Math::normalizeRad(Math::pointToAngle(points[lut[luty*3+lutx][1]], m_player.position) - m_player.getAngleRadians());
     if (a1 < -m_clipangle && a2 < -m_clipangle)
         return false;
     if (a1 > m_clipangle && a2 > m_clipangle)
@@ -172,9 +171,7 @@ void BSPRenderer::traverseBSP(int16_t bspNodeID, void *pixels)
 }
 
 void BSPRenderer::drawSeg(Seg seg, void *pixels) {
-    if (seg.hasBackSector()) {
-        return;
-    }
+    // Classify whether the wall is completely solid or partially hollow
     auto state = Seg::RendererState {
         .player = m_player,
         .overlaps = m_overlaps,
@@ -183,7 +180,34 @@ void BSPRenderer::drawSeg(Seg seg, void *pixels) {
         .sidedefs = m_map.getSidedefs(),
         .xtoviewangle = xtoviewangle
     };
-    seg.draw(state, m_target, pixels);
+    auto frontsector = seg.frontSector();
+    auto backsector = seg.backSector();
+
+    // Entirely solid
+    if (!seg.hasBackSector()) {
+        seg.drawSolid(state, m_target, pixels);
+        return;
+    }
+    // Closed door.
+    if (backsector.ceilHeight <= frontsector.floorHeight || backsector.floorHeight >= frontsector.ceilHeight) {
+        seg.drawSolid(state, m_target, pixels);
+        return;
+    }
+    // Window.
+    if (backsector.ceilHeight != frontsector.ceilHeight || backsector.floorHeight != frontsector.floorHeight) {
+        seg.drawHollow(state, m_target, pixels);
+        return;
+    }
+
+    // Triggers (or other invisible walls/seperators).
+    if (std::strncmp(backsector.ceilTex, frontsector.ceilTex, 8) == 0
+    && std::strncmp(backsector.floorTex, frontsector.floorTex, 8) == 0
+    && backsector.lightLvl == frontsector.lightLvl && m_map.getSidedefs()[seg.linedef().frontSidedef].middleTex[0] == '-') {
+        return;
+    }
+
+    // Anything is hollow/passed
+    seg.drawHollow(state, m_target, pixels);
 }
 
 void BSPRenderer::renderSubsector(uint16_t subsectorID, void *pixels) {
